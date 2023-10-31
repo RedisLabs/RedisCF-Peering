@@ -1,0 +1,253 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloud formation template for Peering
+#Mappings section is designed for AWS managed layer: AWS-Parameters-and-Secrets-Lambda-Extension-Arm64. Because the layer ARN depends on the region
+#of creation, mappings will make a one-to-one relation between ARN and region.
+Mappings:
+  ParametersAndSecretsLayer:
+    us-east-1:
+        ParametersAndSecrets: arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    us-east-2:
+        ParametersAndSecrets: arn:aws:lambda:us-east-2:590474943231:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    us-west-1: 
+        ParametersAndSecrets: arn:aws:lambda:us-west-1:997803712105:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    us-west-2:
+        ParametersAndSecrets: arn:aws:lambda:us-west-2:345057560386:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    af-south-1:
+        ParametersAndSecrets: arn:aws:lambda:af-south-1:317013901791:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    ap-east-1:
+        ParametersAndSecrets: arn:aws:lambda:ap-east-1:768336418462:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    ap-southeast-3:
+        ParametersAndSecrets: arn:aws:lambda:ap-southeast-3:490737872127:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    ap-south-1:
+        ParametersAndSecrets: arn:aws:lambda:ap-south-1:176022468876:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    ap-northeast-3:
+        ParametersAndSecrets: arn:aws:lambda:ap-northeast-3:576959938190:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    ap-northeast-2:
+        ParametersAndSecrets: arn:aws:lambda:ap-northeast-2:738900069198:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    ap-southeast-1:
+        ParametersAndSecrets: arn:aws:lambda:ap-southeast-1:044395824272:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    ap-southeast-2:
+        ParametersAndSecrets: arn:aws:lambda:ap-southeast-2:665172237481:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    ap-northeast-1:
+        ParametersAndSecrets: arn:aws:lambda:ap-northeast-1:133490724326:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    ca-central-1:
+        ParametersAndSecrets: arn:aws:lambda:ca-central-1:200266452380:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    eu-central-1:
+        ParametersAndSecrets: arn:aws:lambda:eu-central-1:187925254637:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    eu-west-1:
+        ParametersAndSecrets: arn:aws:lambda:eu-west-1:015030872274:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    eu-west-2:
+        ParametersAndSecrets: arn:aws:lambda:eu-west-2:133256977650:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+    eu-south-1:
+        ParametersAndSecrets: arn:aws:lambda:eu-south-1:325218067255:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    eu-west-3:
+        ParametersAndSecrets: arn:aws:lambda:eu-west-3:780235371811:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    eu-north-1:
+        ParametersAndSecrets: arn:aws:lambda:eu-north-1:427196147048:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    me-south-1:
+        ParametersAndSecrets: arn:aws:lambda:me-south-1:832021897121:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+    sa-east-1:
+        ParametersAndSecrets: arn:aws:lambda:sa-east-1:933737806257:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:8
+
+#All the parameters that can be used accord to Swagger with 2 additional ones: version and baseURL, used to determine the CloudFormation template
+#version that is desired to be used and the base URL for the RedisCloud server.  
+Parameters:
+    version:
+      Type: String
+      Description: "[Required]. The version of Cloud Formation template that is desired to be used. The version must be available in the S3 bucket. Default value: latest. Example: v2.3.4"
+      Default: "latest"
+    baseURL:
+      Type: String
+      Description: "[Required]. Base URL link used to connect to API. Example: https://api-k8s-cloudapi.qa.redislabs.com."
+      Default: https://api-k8s-cloudapi.qa.redislabs.com
+    subscriptionId:
+      Type: Number
+      Description: "[Required]. The ID of the Flexible Subscription that will make a peering connection. Example: 163199"
+    provider:
+      Type: String
+      AllowedValues:
+         - AWS
+      Description: "[Required]. Cloud provider. Example: AWS. Default: 'AWS'"
+      Default: AWS
+    region:
+      Type: String
+      Description: "[Required]. Deployment region as defined by cloud provider. Example: us-east-1"
+      Default: eu-central-1
+    awsAccountId:
+      Type: String
+      Description: "[Required]. AWS Account uid. Example: 178919255286"
+      Default: "178919255282"
+    vpcId: 
+      Type: String
+      Description: "[Required]. VPC uid. Example: vpc-00e1a8cdca658ce8c"
+      Default: "vpc-00e1a8cdca658ce8c"
+    vpcCidrs:
+      Type: CommaDelimitedList
+      Description: "[Optional]. List of VPC CIDRs. Example: '10.10.10.0/24,10.10.20.0/24'"
+      Default: "10.10.10.0/24,10.10.20.0/24"
+
+#Metadata block is used to separate parameters displayed upon stack creation in a more organised order.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Parameters:
+          - version
+          - baseURL
+          - subscriptionId
+          - provider
+          - region
+          - awsAccountId
+          - vpcId
+          - vpcCidrs
+
+#Resources block creates and integrates the required AWS services within the architecture
+Resources:
+  #Creation of lambda's requests_layer using the archive from S3.
+  RequestsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: RequestsLayer
+      Description: RequestsLayer
+      Content:
+        S3Bucket: redis-cicd
+        S3Key:
+          Fn::Join:
+            - ""
+            - - "Peering/"
+              - !Ref version
+              - "/requests_layer.zip"
+      CompatibleRuntimes:
+        - python3.7
+        - python3.8
+        - python3.9
+        - python3.10
+        - python3.11
+      CompatibleArchitectures: 
+        - arm64
+        - x86_64
+
+  #Creation of lambda's secrets_layer using the archive from S3.
+  SecretsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: SecretsLayer
+      Description: SecretsLayer
+      Content:
+        S3Bucket: redis-cicd
+        S3Key:
+          Fn::Join:
+            - ""
+            - - "Peering/"
+              - !Ref version
+              - "/secrets_layer.zip"
+      CompatibleRuntimes:
+        - python3.7
+        - python3.8
+        - python3.9
+        - python3.10
+        - python3.11
+      CompatibleArchitectures: 
+        - arm64
+        - x86_64
+
+  #Lambda's Execution Role created in IAM allowing CloudWatch, Step Functions, CloudFormation, Secrets Manager and S3 actions
+  RedisLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 
+        Fn::Sub: PeeringLambdaExecutionRole-${AWS::Region}-${AWS::StackName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: PeeringLambdaExecutionRole
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:PutRetentionPolicy
+            - logs:CreateLogGroup
+            - states:*
+            - cloudformation:*
+            - secretsmanager:GetSecretValue
+            - s3:PutObject
+            - s3:PutObjectAcl
+            - s3:GetObject
+            - s3:GetObjectAcl
+            - s3:DeleteObject
+            Resource: "*"
+
+  #EventInvokeConfig blocks are used to set the maximum retry attempts of lambda's invokation to 0. This means that each lambda will run only 1 time.
+  PeeringHandlerEventInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties: 
+      FunctionName: !Ref PeeringHandler
+      MaximumRetryAttempts: 0
+      Qualifier: $LATEST
+
+  #Main Lambda function's settings and configurations
+  PeeringHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: "Peering-Handler-${AWS::Region}-${AWS::StackName}"
+      Architectures: 
+        - arm64
+      Runtime: python3.10
+      Handler: Peering-Handler.lambda_handler
+      Timeout: 300
+      Role: !GetAtt RedisLambdaExecutionRole.Arn
+      Layers:
+        - !Ref RequestsLayer
+        - !Ref SecretsLayer
+        - !FindInMap [ParametersAndSecretsLayer, !Ref "AWS::Region", ParametersAndSecrets]
+      Code:
+        S3Bucket: redis-cicd
+        S3Key:
+          Fn::Join:
+            - ""
+            - - "Peering/"
+              - !Ref version
+              - "/Peering-Handler.zip"
+
+  #CloudFormation's custom resource that allows users to interact and insert values for Redis parameters in order to create relevant API Calls.
+  Redis:
+      Type: Custom::Peering-Handler
+      Version: "1.0"
+      Properties:
+        ServiceToken: !GetAtt PeeringHandler.Arn
+        version:        !Ref version
+        baseURL:        !Ref baseURL
+        subscriptionId: !Ref subscriptionId
+        provider:       !Ref provider
+        region:         !Ref region
+        awsAccountId:   !Ref awsAccountId
+        vpcId:          !Ref vpcId
+        vpcCidrs:       !Ref vpcCidrs
+
+#Outputs section that is displayed in the Outputs' tab of the stack containing relevant information about Redis resources.
+#Those parameters are updated also upon stack Updates.   
+Outputs:
+  SubscriptionId:
+    Description: Subscription ID for the current stack
+    Value: !GetAtt Redis.SubscriptionId               
+  PeeringId:
+    Description: Peering ID for the current stack
+    Value: !GetAtt Redis.PeeringId
+  PeeringDescription:
+    Description: Peering Description which is related to successfull/failed API call
+    Value: !GetAtt Redis.PeeringDescription
+  PostCall:
+    Description: POST API call sent as a JSON to Redis Cloud
+    Value: !GetAtt Redis.PostCall
