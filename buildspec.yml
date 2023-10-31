@@ -12,8 +12,8 @@ phases:
   build:
     commands:
       # Clone the GitHub repository
-      - git clone https://github.com/FlorinManaila/Redis-Peering.git
-      - cd Redis-Peering
+      - git clone https://github.com/RedisLabs/RedisCF-Peering.git
+      - cd RedisCF-Peering
       # Extract the version number from the commit message
       - |
         commit_msg=$(git log -1 --pretty=format:%s)
