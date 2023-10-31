@@ -1,0 +1,37 @@
+version: 0.2
+#test
+env:
+  variables:
+    VERSION_NUMBER: "v1.0.0" # Default value
+
+phases:
+  pre_build:
+    commands:
+      - apt-get update
+      - apt-get install -y zip
+  build:
+    commands:
+      # Clone the GitHub repository
+      - git clone https://github.com/FlorinManaila/Redis-Peering.git
+      - cd Redis-Peering
+      # Extract the version number from the commit message
+      - |
+        commit_msg=$(git log -1 --pretty=format:%s)
+        version_number=$(echo "$commit_msg" | grep -oP 'v\d+\.\d+\.\d+')
+        export VERSION_NUMBER=$version_number
+      # Upload CF template to S3
+      - aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://redis-cicd/Peering/$VERSION_NUMBER/
+      - aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://redis-cicd/Peering/latest/
+      # Create a zip archive for lambda and upload archives to S3
+      - zip -j Peering-Handler.zip Lambda/Peering-Handler.py
+      - aws s3 cp Peering-Handler.zip s3://redis-cicd/Peering/latest/
+      - aws s3 cp Peering-Handler.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
+      # Create a zip archive for layers and upload archives to S3
+      - cd Layers/requests_layer && zip -r requests_layer.zip python
+      - aws s3 cp requests_layer.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
+      - aws s3 cp requests_layer.zip s3://redis-cicd/Peering/latest/
+      - cd ../secrets_layer && zip -r secrets_layer.zip python
+      - aws s3 cp secrets_layer.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
+      - aws s3 cp secrets_layer.zip s3://redis-cicd/Peering/latest/
+
+      
