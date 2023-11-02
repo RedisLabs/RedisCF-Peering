@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Cloud formation template for Peering
+
 #Mappings section is designed for AWS managed layer: AWS-Parameters-and-Secrets-Lambda-Extension-Arm64. Because the layer ARN depends on the region
 #of creation, mappings will make a one-to-one relation between ARN and region.
 Mappings:
