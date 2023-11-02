@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Cloud formation template for Peering
-
 #Mappings section is designed for AWS managed layer: AWS-Parameters-and-Secrets-Lambda-Extension-Arm64. Because the layer ARN depends on the region
 #of creation, mappings will make a one-to-one relation between ARN and region.
 Mappings:
@@ -77,11 +76,9 @@ Parameters:
     awsAccountId:
       Type: String
       Description: "[Required]. AWS Account uid. Example: 178919255286"
-      Default: "178919255282"
     vpcId: 
       Type: String
       Description: "[Required]. VPC uid. Example: vpc-00e1a8cdca658ce8c"
-      Default: "vpc-00e1a8cdca658ce8c"
     vpcCidrs:
       Type: CommaDelimitedList
       Description: "[Optional]. List of VPC CIDRs. Example: '10.10.10.0/24,10.10.20.0/24'"
