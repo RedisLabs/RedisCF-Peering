@@ -61,27 +61,41 @@ def lambda_handler (event, context):
             #The API Call the creates the Peering
             responseValue = PostPeering(callEvent, subscription_id)
             print (responseValue)
-            #Retrieving Peering ID and Peering Description to populate Outputs tab of the stack
-            peer_id, peer_description = GetPeeringId (responseValue['links'][0]['href'])
-            print ("New peering id is: " + str(peer_id))
-            print ("Description for Peering with id " + str(peer_id) + " is: " + str(peer_description))
-            
-            responseData.update({"SubscriptionId":str(subscription_id), "PeeringId":str(peer_id), "PeeringDescription":str(peer_description), "PostCall":str(callEvent)})
-            responseBody.update({"Data":responseData})
-            GetResponse(responseURL, responseBody)
-        
-        except:
-            #If any error is encounter in the "try" block, then a function will catch the error and throw it back to CloudFormation as a failure reason.
-            peer_error = GetPeeringError (responseValue['links'][0]['href'])
-            responseStatus = 'FAILED'
-            reason = str(peer_error)
-            if responseStatus == 'FAILED':
-                responseBody.update({"Status":responseStatus})
-                if "Reason" in str(responseBody):
-                    responseBody.update({"Reason":reason})
-                else:
-                    responseBody["Reason"] = reason
+
+            try:
+                #Retrieving Peering ID and Peering Description to populate Outputs tab of the stack
+                peer_id, peer_description = GetPeeringId (responseValue['links'][0]['href'])
+                print ("New peering id is: " + str(peer_id))
+                print ("Description for Peering with id " + str(peer_id) + " is: " + str(peer_description))
+                
+                responseData.update({"SubscriptionId":str(subscription_id), "PeeringId":str(peer_id), "PeeringDescription":str(peer_description), "PostCall":str(callEvent)})
+                responseBody.update({"Data":responseData})
                 GetResponse(responseURL, responseBody)
+            
+            except:
+                #If any error is encounter in the "try" block, then a function will catch the error and throw it back to CloudFormation as a failure reason.
+                peer_error = GetPeeringError (responseValue['links'][0]['href'])
+                responseStatus = 'FAILED'
+                reason = str(peer_error)
+                if responseStatus == 'FAILED':
+                    responseBody.update({"Status":responseStatus})
+                    if "Reason" in str(responseBody):
+                        responseBody.update({"Reason":reason})
+                    else:
+                        responseBody["Reason"] = reason
+                    GetResponse(responseURL, responseBody)
+
+        except:
+                #This except block is triggered only for wrong base_url or wrong credentials.
+                responseStatus = 'FAILED'
+                reason = 'Please check if the base_url or the credentials set in Secrets Manager are wrong.'
+                if responseStatus == 'FAILED':
+                    responseBody.update({"Status":responseStatus})
+                    if "Reason" in str(responseBody):
+                        responseBody.update({"Reason":reason})
+                    else:
+                        responseBody["Reason"] = reason
+                    GetResponse(responseURL, responseBody)
     
     #If the action of CloudFormation is Update stack            
     if event['RequestType'] == "Update":
@@ -190,7 +204,7 @@ def GetPeering (subscription_id):
     response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
     response = response.json()
     
-    while "vpcPeeringId" not in str(response) and count < 120:
+    while "vpcPeeringId" not in str(response) or count < 120:
         time.sleep(1)
         count += 1
         print (str(response))
@@ -208,7 +222,7 @@ def GetPeeringId (url):
     print (str(response))
     count = 0
     
-    while "resourceId" not in str(response) and count < 120:
+    while "resourceId" not in str(response) or count < 120:
         time.sleep(1)
         count += 1
         print (str(response))
@@ -241,7 +255,7 @@ def GetPeeringError (url):
     response = response.json()
     count = 0
 
-    while "processing-error" not in str(response) and count < 120:
+    while "processing-error" not in str(response) or count < 120:
         time.sleep(1)
         count += 1
         response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
