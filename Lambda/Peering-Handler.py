@@ -63,6 +63,18 @@ def lambda_handler (event, context):
             print (responseValue)
 
             try:
+                if "processing-error" in str(responseValue):           
+                    peer_error = GetPeeringError (responseValue['links'][0]['href'])
+                    responseStatus = 'FAILED'
+                    reason = str(peer_error)
+                    if responseStatus == 'FAILED':
+                        responseBody.update({"Status":responseStatus})
+                        if "Reason" in str(responseBody):
+                            responseBody.update({"Reason":reason})
+                        else:
+                            responseBody["Reason"] = reason
+                        GetResponse(responseURL, responseBody)
+
                 #Retrieving Peering ID and Peering Description to populate Outputs tab of the stack
                 peer_id, peer_description = GetPeeringId (responseValue['links'][0]['href'])
                 print ("New peering id is: " + str(peer_id))
@@ -194,24 +206,28 @@ def PostPeering (event, subscription_id):
     
     response = requests.post(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key, "Content-Type":content_type}, json = event)
     response_json = response.json()
+    print ("This is the response after POST call: " + str(response_json))
+
+    time.sleep(5)
+    response = requests.get(response_json['links'][0]['href'], headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
+    response_json = response.json()
+    print ("This is the response 5 seconds after POST call: " + str(response_json))
+
     return response_json
     Logs(response_json)
 
 #Returns all the information about Peerings under the specified Subscription
 def GetPeering (subscription_id):
     url = base_url + "/v1/subscriptions/" + str(subscription_id) + "/peerings"
-    count = 0
     response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
     response = response.json()
     
-    while "vpcPeeringId" not in str(response) or count < 120:
+    while "vpcPeeringId" not in str(response):
         time.sleep(1)
-        count += 1
-        print (str(response))
         response = requests.get(response['links'][0]['href'], headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
         response = response.json()
+    print (str(response))
         
-    print (response)
     return response
     Logs(response)
 
@@ -220,14 +236,12 @@ def GetPeeringId (url):
     response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
     response = response.json()
     print (str(response))
-    count = 0
     
-    while "resourceId" not in str(response) or count < 120:
+    while "resourceId" not in str(response):
         time.sleep(1)
-        count += 1
-        print (str(response))
         response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
         response = response.json()
+    print (str(response))
 
     peer_id = response["response"]["resourceId"]
     peer_description = response["description"]
@@ -253,11 +267,9 @@ def DeletePeering (subscription_id, peering_id):
 def GetPeeringError (url):
     response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
     response = response.json()
-    count = 0
 
-    while "processing-error" not in str(response) or count < 120:
+    while "processing-error" not in str(response):
         time.sleep(1)
-        count += 1
         response = requests.get(url, headers={"accept":accept, "x-api-key":x_api_key, "x-api-secret-key":x_api_secret_key})
         response = response.json()
 
