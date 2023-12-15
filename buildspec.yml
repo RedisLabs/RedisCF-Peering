@@ -1,8 +1,26 @@
 version: 0.2
-#test
+
 env:
   variables:
     VERSION_NUMBER: "v1.0.0" # Default value
+    #Add more bucket names as needed. Waiting approval for buckets for Tel Aviv and Hong Kong
+    BUCKET_LIST: >
+     redis-cf-ap-northeast-1,
+     redis-cf-ap-northeast-2,
+     redis-cf-ap-south-1,
+     redis-cf-ap-southeast-1,
+     redis-cf-ap-southeast-2,
+     redis-cf-ca-central-1,
+     redis-cf-eu-central-1,
+     redis-cf-eu-north-1,
+     redis-cf-eu-west-1,
+     redis-cf-eu-west-2,
+     redis-cf-eu-west-3,
+     redis-cf-sa-east-1,
+     redis-cf-us-east-1,
+     redis-cf-us-east-2,
+     redis-cf-us-west-1,
+     redis-cf-us-west-2
 
 phases:
   pre_build:
@@ -20,18 +38,34 @@ phases:
         version_number=$(echo "$commit_msg" | grep -oP 'v\d+\.\d+\.\d+')
         export VERSION_NUMBER=$version_number
       # Upload CF template to S3
-      - aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://redis-cicd/Peering/$VERSION_NUMBER/
-      - aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://redis-cicd/Peering/latest/
+      - |
+        for BUCKET in $(echo $BUCKET_LIST | tr "," "\n"); do
+          echo "Uploading CF template to bucket: $BUCKET"
+          aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://$BUCKET/Peering/$VERSION_NUMBER/
+          aws s3 cp CloudFormation/PeeringCFTemplate.yml s3://$BUCKET/Peering/latest/
+        done
       # Create a zip archive for lambda and upload archives to S3
       - zip -j Peering-Handler.zip Lambda/Peering-Handler.py
-      - aws s3 cp Peering-Handler.zip s3://redis-cicd/Peering/latest/
-      - aws s3 cp Peering-Handler.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
+      - |
+        for BUCKET in $(echo $BUCKET_LIST | tr "," "\n"); do
+          echo "Uploading lambda zip to bucket: $BUCKET"
+          aws s3 cp Peering-Handler.zip s3://$BUCKET/Peering/latest/
+          aws s3 cp Peering-Handler.zip s3://$BUCKET/Peering/$VERSION_NUMBER/
+        done
       # Create a zip archive for layers and upload archives to S3
       - cd Layers/requests_layer && zip -r requests_layer.zip python
-      - aws s3 cp requests_layer.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
-      - aws s3 cp requests_layer.zip s3://redis-cicd/Peering/latest/
+      - |
+        for BUCKET in $(echo $BUCKET_LIST | tr "," "\n"); do
+          echo "Uploading requests_layer to bucket: $BUCKET"
+          aws s3 cp requests_layer.zip s3://$BUCKET/Peering/$VERSION_NUMBER/
+          aws s3 cp requests_layer.zip s3://$BUCKET/Peering/latest/
+        done
       - cd ../secrets_layer && zip -r secrets_layer.zip python
-      - aws s3 cp secrets_layer.zip s3://redis-cicd/Peering/$VERSION_NUMBER/
-      - aws s3 cp secrets_layer.zip s3://redis-cicd/Peering/latest/
+      - |
+        for BUCKET in $(echo $BUCKET_LIST | tr "," "\n"); do
+          echo "Uploading secrets_layer to bucket: $BUCKET"
+          aws s3 cp secrets_layer.zip s3://$BUCKET/Peering/$VERSION_NUMBER/
+          aws s3 cp secrets_layer.zip s3://$BUCKET/Peering/latest/
+        done
 
       
